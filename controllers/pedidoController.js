@@ -1,12 +1,13 @@
 const stripeservice=require('../servicios/servicioStripe');
+const paypalservice=require('../servicios/servicioPaypal');
 const {initializeApp}= require('firebase/app');
 const app = initializeApp(JSON.parse(process.env.FIREBASE_CONFIG));
 //-----------------CONFIGURACION DE ACCESO: FIREBASE AUTHENTICATION-----------------
-const {getAuth} = require('firebase/auth');
+const {getAuth, } = require('firebase/auth');
 const auth = getAuth(app); // <--- Servicio de acceso a Firebase Authentication
 
 //-----------------CONFIGURACION DE ACCESO: FIRESTORE DATABASE-----------------
-const {getFirestore, getDocs, collection,query, where} = require('firebase/firestore');
+const {getFirestore, getDocs, collection,query, where, addDoc} = require('firebase/firestore');
 const db = getFirestore(app); // <--- Servicio de acceso a todas las colecciones de la base de datos de Firestore Database
 
 
@@ -38,15 +39,49 @@ module.exports={
             res.status(500).send([]);
         }
     },
-    finalizarPedido: async (req,res,next)=>{
+    FinalizarPedido: async (req,res,next)=>{
         try {
-                        
+            console.log('Datos recibidos para finalizar pedido...', req.body.pedido.datosPago);
+            //Accedemos también a la cabecera Authorization para obtener el token de sesion
+            let _token = req.headers.authorization.split(' ')[1];
+            
+            
+            //Accedemo al id de
+            let _pedidoInsert={
+                idPedido: req.body.idPedido,
+                fechaPedido: req.body.fechaPedido,
+                estadoPedido: req.body.estadoPedido,
+                elementosPedido: req.body.elementosPedido,
+                subtotalPedido: req.body.subtotalPedido,
+                gastosEnvioPedido: req.body.gastosEnvioPedido,
+                totalPedido: req.body.totalPedido,
+                datosPago:{
+                    tipodireccionenvio: req.body.pedido.datosPago.tipodireccionenvio,
+                    direccionEnvio: req.body.pedido.datosPago.direccionEnvio,
+                    nombreEnvio: req.body.pedido.datosPago.nombreEnvio,
+                    apellidosEnvio: req.body.pedido.datosPago.apellidosEnvio,
+                    telefonoEnvio: req.body.pedido.datosPago.telefonoEnvio,
+                    emailEnvio: req.body.pedido.datosPago.emailEnvio,
+                    otrosDatos: req.body.pedido.datosPago.otrosDatos,
+                    tipoDireccionFactura: req.body.pedido.datosPago.tipoDireccionFactura,
+                    nombreFactura: req.body.pedido.datosPago.nombreFactura,
+                    docfiscalFactura: req.body.pedido.datosPago.docfiscalFactura,
+                    direccionFacturacion: 
+                    req.body.pedido.datosPago.direccionFacturacion,
+
+                    metodoPago: req.body.pedido.datosPago.metodoPago,
+                }
+            }
+            //let _resultInsert = await addDoc(collection(db,'pedidos'),_pedidoInsert);    
+            if(_pedidoInsert.datosPago.metodoPago==='pagopaypal'){
+
+            }                    
         } catch (error) {
             console.log('error al finalizar pedido...', error);
             res.status(403).send(
                 {
                     codigo: 1,
-                    mensaje: 'error al finalizar pedido en servicio de nodejs contra mongodb',
+                    mensaje: 'error al finalizar pedido en servicio de nodejs contra firebase',
                     error: error.message,
                     datoscliente: null,
                     tokensesion:null,
@@ -56,6 +91,18 @@ module.exports={
         }
     },
     paypalCallback: async (req,res,next)=>{//OJO este servicio es invocado por paypal cuando el cliente ha finalizado el pago
+                //En la url viene parametros: 
+        //idcli <--- idcliente que ha hecho el pedido
+        //pedido <--- idpedido que ha hecho el pedido
+        //cancel <--- true o false
+        
+        console.log('Parametros recibidos...', req.query);
+        let {idcliente,idpedido,cancel}=req.query;
+        //necesito obtener el id-pago generado por paypal para el pedido
+        
+        if(! _finPagoOk || cancel==true) throw new Error('Error al finalizar pago con PAYPAL');
+        
+        res.status(200).redirect(`http://localhost:4200/Pedido/FinalizarPedidoOk?idcliente=${idcliente}&idpedido=${idpedido}&token=${_jwtSoloUnUso}`);
     },
 
     /**

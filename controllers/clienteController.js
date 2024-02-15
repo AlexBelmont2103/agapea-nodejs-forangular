@@ -11,8 +11,12 @@ const mailjet = Mailjet.apiConnect(
 );
 
 //-----------------CONFIGURACION DE ACCESO: FIREBASE AUTHENTICATION-----------------
-const {getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, checkActionCode, applyActionCode} = require('firebase/auth');
+const {getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, checkActionCode, applyActionCode,} = require('firebase/auth');
 const auth = getAuth(app); // <--- Servicio de acceso a Firebase Authentication
+
+//-----------------CONFIGURACION DE ACCESO: FIREBASE STORAGE-----------------
+const {getStorage, ref, uploadString} = require('firebase/storage');
+const storage = getStorage(app); // <--- Servicio de acceso a Firebase Storage
 
 //-----------------CONFIGURACION DE ACCESO: FIRESTORE DATABASE-----------------
 const {getFirestore, getDocs, collection,query, where, addDoc} = require('firebase/firestore');
@@ -147,4 +151,30 @@ module.exports = {
         }
 
       },
+      recuperarDatosCliente(req,res,next){
+        //Recuperar los datos del cliente a través del id
+        console.log('Datos recibidos desde el cliente de Angular', req.query);
+        
+      },
+      uploadImagen: async (req,res,next)=>{
+        try {
+            //tengo q coger la extension del fichero, en req.body.imagen:  data:image/jpeg
+            let _nombrefichero='imagen____' + req.body.emailcliente;//  + '.' + req.body.imagen.split(';')[0].split('/')[1]   ;
+            console.log('nombre del fichero a guardar en STORGE...',_nombrefichero);
+            let _result=await uploadString(ref(storage,`imagenes/${_nombrefichero}`), req.body.imagen,'data_url'); //objeto respuesta subida UploadResult         
+        
+            //podrias meter en coleccion clientes de firebase-database en prop. credenciales en prop. imagenAvatar
+            //el nombre del fichero y en imagenAvatarBASE&$ el contenido de la imagen...
+            let _refcliente=await getDocs(query(collection(db,'clientes'),where('cuenta.email','==',req.body.emailcliente)));
+            _refcliente.forEach( async (result) => { 
+                await updateDoc(result.ref, { 'cuenta.imagenAvatarBASE64': req.body.imagen } );
+            });
+            
+            generaRespuesta(0,'Imagen avatar subida OK!!! al storage de firebase','',null,null,null,res );
+        } catch (error) {
+            console.log('error subida imagen...',error);
+            generaRespuesta(5,'fallo a la hora de subir imagen al storage',error,null,null,null,res);
+
+        }
+    } 
     };

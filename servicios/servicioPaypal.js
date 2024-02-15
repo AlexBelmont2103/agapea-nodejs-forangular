@@ -1,5 +1,4 @@
 const axios = require('axios');
-const PagosPayPal = require('../modelos/pagospaypal');
 
 async function getAccesTokenPAYPAL(){
     //Para obtener token de servicio paypal debo pasar en base64 la combinacion de "clientID:secretID" 
