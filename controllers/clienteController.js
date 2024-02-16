@@ -31,11 +31,15 @@ module.exports = {
           //Recuperar de la coleccion clientes los datos del cliente asociados al email de la cuenta
           //Recuperamos el jwt que proporciona firebase tras el login
           let _clienteSnapshot = await getDocs(query(collection(db, 'clientes'),where('cuenta.email','==',req.body.email)));
+          req.session.jwt = await _userCredential.user.getIdToken();
+          req.session.user = _clienteSnapshot.docs[0].data();
+          console.log('Datos del cliente en sesion', req.session.jwt);
+          console.log('Datos del cliente en sesion', req.session.user);
               res.status(200).send({
                 codigo: 0,
                 mensaje: "login correcto",
-                datoscliente: _clienteSnapshot.docs[0].data(),
-                tokensesion: await _userCredential.user.getIdToken(),
+                datoscliente: req.session.user,
+                tokensesion: req.session.jwt,
                 otrosdatos: null,
               });
           }catch(error){
@@ -153,8 +157,27 @@ module.exports = {
 
       },
       recuperarDatosCliente(req,res,next){
-        //Recuperar los datos del cliente a través del id
-        console.log('Datos recibidos desde el cliente de Angular', req.query);
+        //Recuperar los datos del cliente a traves de la sesion
+        try{
+          console.log('Datos del cliente en el servidor', req.session.user);
+          res.status(200).send({
+            codigo: 0,
+            mensaje: "recuperacion correcta",
+            datoscliente: req.session.user,
+            tokensesion: req.session.jwt,
+            otrodatos: null,
+          });
+        }catch(error){
+          console.log('error al recuperar datos del cliente', error);
+          res.status(500).send({
+            codigo: 1,
+            mensaje: "error a la hora de recuperar datos del cliente",
+            error: error.message,
+            datoscliente:null,
+            tokensesion:null,
+            otrodatos:null
+          });
+        }
         
       },
       uploadImagen: async (req,res,next)=>{

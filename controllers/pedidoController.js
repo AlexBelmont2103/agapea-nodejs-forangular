@@ -41,9 +41,7 @@ module.exports={
     },
     FinalizarPedido: async (req,res,next)=>{
         try {
-            console.log('Datos recibidos para finalizar pedido...', req.body.pedido.datosPago);
-            //Accedemos también a la cabecera Authorization para obtener el token de sesion
-            let _token = req.headers.authorization.split(' ')[1];
+            console.log('Datos del cliente en el servidor', req.session.user);
             
             
             //Accedemo al id de
