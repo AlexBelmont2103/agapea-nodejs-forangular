@@ -11,7 +11,7 @@ const mailjet = Mailjet.apiConnect(
 );
 
 //-----------------CONFIGURACION DE ACCESO: FIREBASE AUTHENTICATION-----------------
-const {getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, checkActionCode, applyActionCode,} = require('firebase/auth');
+const {getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, checkActionCode, applyActionCode} = require('firebase/auth');
 const auth = getAuth(app); // <--- Servicio de acceso a Firebase Authentication
 
 //-----------------CONFIGURACION DE ACCESO: FIREBASE STORAGE-----------------
@@ -27,6 +27,7 @@ module.exports = {
         try{
           console.log('Datos recibidos desde el cliente de Angular', req.body);
           let _userCredential = await signInWithEmailAndPassword(auth, req.body.email, req.body.password);
+          console.log('Resultado del login en firebase authentication', _userCredential.user);
           //Recuperar de la coleccion clientes los datos del cliente asociados al email de la cuenta
           //Recuperamos el jwt que proporciona firebase tras el login
           let _clienteSnapshot = await getDocs(query(collection(db, 'clientes'),where('cuenta.email','==',req.body.email)));
