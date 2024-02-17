@@ -25,21 +25,15 @@ const db = getFirestore(app); // <--- Servicio de acceso a todas las colecciones
 module.exports = {
     login:async function(req,res,next){
         try{
-          console.log('Datos recibidos desde el cliente de Angular', req.body);
           let _userCredential = await signInWithEmailAndPassword(auth, req.body.email, req.body.password);
-          console.log('Resultado del login en firebase authentication', _userCredential.user);
           //Recuperar de la coleccion clientes los datos del cliente asociados al email de la cuenta
           //Recuperamos el jwt que proporciona firebase tras el login
           let _clienteSnapshot = await getDocs(query(collection(db, 'clientes'),where('cuenta.email','==',req.body.email)));
-          req.session.jwt = await _userCredential.user.getIdToken();
-          req.session.user = _clienteSnapshot.docs[0].data();
-          console.log('Datos del cliente en sesion', req.session.jwt);
-          console.log('Datos del cliente en sesion', req.session.user);
               res.status(200).send({
                 codigo: 0,
                 mensaje: "login correcto",
-                datoscliente: req.session.user,
-                tokensesion: req.session.jwt,
+                datoscliente: _clienteSnapshot.docs[0].data(),
+                tokensesion: await _userCredential.user.getIdToken(),
                 otrosdatos: null,
               });
           }catch(error){
@@ -74,7 +68,6 @@ module.exports = {
           await sendEmailVerification(_userCredential.user);
           //3º paso: insertar datos del cliente en coleccion clientes
           let _clienteRef = await addDoc(collection(db, 'clientes'), _cliente);
-          console.log("Resultado de registro en coleccion clientes", _clienteRef);
            res.status(200).send({
               codigo: 0,
               mensaje: "registro correcto",
@@ -159,7 +152,7 @@ module.exports = {
       recuperarDatosCliente(req,res,next){
         //Recuperar los datos del cliente a traves de la sesion
         try{
-          console.log('Datos del cliente en el servidor', req.session.user);
+          let _email = req.query.idcliente;
           res.status(200).send({
             codigo: 0,
             mensaje: "recuperacion correcta",

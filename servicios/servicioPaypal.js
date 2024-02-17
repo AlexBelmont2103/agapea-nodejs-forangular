@@ -1,4 +1,8 @@
 const axios = require('axios');
+const {initializeApp}= require('firebase/app');
+const app = initializeApp(JSON.parse(process.env.FIREBASE_CONFIG));
+const {getFirestore, getDocs, collection,query, where, addDoc} = require('firebase/firestore');
+const db = getFirestore(app); // <--- Servicio de acceso a todas las colecciones de la base de datos de Firestore Database
 
 async function getAccesTokenPAYPAL(){
     //Para obtener token de servicio paypal debo pasar en base64 la combinacion de "clientID:secretID" 
@@ -28,7 +32,7 @@ async function getAccesTokenPAYPAL(){
     }
 }
 module.exports = {
-    crearPagoPAYPAL:async function(idcliente, pedido){
+    crearPagoPAYPAL:async function(email, pedido){
         console.log("datos del pedido..", pedido);
         try{
             let _accessToken = await getAccesTokenPAYPAL();
@@ -54,11 +58,11 @@ module.exports = {
                                 breakdown:{
                                     item_total:{
                                         currency_code: "EUR",
-                                        value: pedido.subTotalPedido.toString()
+                                        value: pedido.subtotalPedido.toString()
                                     },
                                     shipping:{
                                         currency_code: "EUR",
-                                        value: pedido.gastosEnvio.toString()
+                                        value: pedido.gastosEnvioPedido.toString()
                                     },
                                 }
                             },
@@ -66,8 +70,8 @@ module.exports = {
                         }
                     ],
                     application_context:{
-                        return_url: `http://localhost:5000/api/Pedido/PayPalCallback?idcliente=${idcliente}&idpedido=${pedido._id}`,
-                        cancel_url: `http://localhost:5000/api/Pedido/PayPalCallback?idcliente=${idcliente}&idpedido=${pedido._id}&Cancel=true`
+                        return_url: `http://localhost:5000/api/Pedido/PayPalCallback?email=${email}&idpedido=${pedido.idPedido}`,
+                        cancel_url: `http://localhost:5000/api/Pedido/PayPalCallback?email=${email}&idpedido=${pedido.idPedido}&Cancel=true`
                     }
                 };
                 console.log("Objeto order para crear pago PAYPAL: ", _order);
@@ -88,14 +92,16 @@ module.exports = {
                 if(_response.status === 201 || _response.status === 200){//A veces devuelve 201 y otras 200
                     //En _response.data necesito el id del pago y prop links que es un array de objetos con href y rel
                     //el que tenga .rel == "approve" es el que necesito para redireccionar al cliente
-                    let _saveOrderId= await new PagosPayPal({idcliente, idpedido: pedido._id, idpago: _response.data.id}).save();
-                    console.log("Resultado del insert del id-pago paypal en mongodb: ", _saveOrderId);
+                    let _pagoPayPal = {
+                        idcliente: email,
+                        idpedido: pedido.idPedido,
+                        idpago: _response.data.id
+                    };
+                    let _docRef = await addDoc(collection(db, 'pagosPayPal'), _pagoPayPal);
                     return _response.data.links.filter( link=>link.rel==='approve')[0].href;
                 }else{
                     throw new Error("Error en crearPagoPAYPAL: ");
                 }
-
-
         }catch(error){
             console.log("Error en crearPagoPAYPAL: ", error);
             return null;

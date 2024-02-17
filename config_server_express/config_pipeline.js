@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const config_router_middleware = require("./config_routing_middleware");
+const session = require('express-session'); //<--paquete para gestionar sesiones en express
 
 module.exports = function (serverExpress) {
   //-----configuracion de la pipeline del servidor express ----
@@ -15,6 +16,7 @@ module.exports = function (serverExpress) {
   serverExpress.use(bodyParser.json());
   serverExpress.use(bodyParser.urlencoded({ extended: true }));
   serverExpress.use(cors());
+
       /*middleware propios:
     - enrutamiento <---- rutas o endpoints del servicio REST(FULL) montado en el servidor express, siempre devuelven datos formato JSON
                         el foramto de estas rutas:   /api/....    

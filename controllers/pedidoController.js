@@ -1,5 +1,5 @@
 const stripeservice=require('../servicios/servicioStripe');
-const paypalservice=require('../servicios/servicioPaypal');
+const servicioPaypal = require('../servicios/servicioPaypal');
 const {initializeApp}= require('firebase/app');
 const app = initializeApp(JSON.parse(process.env.FIREBASE_CONFIG));
 //-----------------CONFIGURACION DE ACCESO: FIREBASE AUTHENTICATION-----------------
@@ -7,7 +7,8 @@ const {getAuth, } = require('firebase/auth');
 const auth = getAuth(app); // <--- Servicio de acceso a Firebase Authentication
 
 //-----------------CONFIGURACION DE ACCESO: FIRESTORE DATABASE-----------------
-const {getFirestore, getDocs, collection,query, where, addDoc} = require('firebase/firestore');
+const {getFirestore, getDocs, collection,query, where, setDoc, doc, arrayUnion, updateDoc} = require('firebase/firestore');
+
 const db = getFirestore(app); // <--- Servicio de acceso a todas las colecciones de la base de datos de Firestore Database
 
 
@@ -40,19 +41,16 @@ module.exports={
         }
     },
     FinalizarPedido: async (req,res,next)=>{
-        try {
-            console.log('Datos del cliente en el servidor', req.session.user);
-            
-            
-            //Accedemo al id de
+        try {    
+            console.log('Datos del pedido...', req.body);
             let _pedidoInsert={
-                idPedido: req.body.idPedido,
-                fechaPedido: req.body.fechaPedido,
-                estadoPedido: req.body.estadoPedido,
-                elementosPedido: req.body.elementosPedido,
-                subtotalPedido: req.body.subtotalPedido,
-                gastosEnvioPedido: req.body.gastosEnvioPedido,
-                totalPedido: req.body.totalPedido,
+                idPedido: req.body.pedido.idPedido,
+                fechaPedido: req.body.pedido.fechaPedido,
+                estadoPedido: req.body.pedido.estadoPedido,
+                elementosPedido: req.body.pedido.elementosPedido,
+                subtotalPedido: req.body.pedido.subtotalPedido,
+                gastosEnvioPedido: req.body.pedido.gastosEnvioPedido,
+                totalPedido: req.body.pedido.totalPedido,
                 datosPago:{
                     tipodireccionenvio: req.body.pedido.datosPago.tipodireccionenvio,
                     direccionEnvio: req.body.pedido.datosPago.direccionEnvio,
@@ -60,20 +58,28 @@ module.exports={
                     apellidosEnvio: req.body.pedido.datosPago.apellidosEnvio,
                     telefonoEnvio: req.body.pedido.datosPago.telefonoEnvio,
                     emailEnvio: req.body.pedido.datosPago.emailEnvio,
-                    otrosDatos: req.body.pedido.datosPago.otrosDatos,
-                    tipoDireccionFactura: req.body.pedido.datosPago.tipoDireccionFactura,
-                    nombreFactura: req.body.pedido.datosPago.nombreFactura,
-                    docfiscalFactura: req.body.pedido.datosPago.docfiscalFactura,
-                    direccionFacturacion: 
-                    req.body.pedido.datosPago.direccionFacturacion,
-
                     metodoPago: req.body.pedido.datosPago.metodoPago,
                 }
             }
-            //let _resultInsert = await addDoc(collection(db,'pedidos'),_pedidoInsert);    
-            if(_pedidoInsert.datosPago.metodoPago==='pagopaypal'){
-
-            }                    
+            console.log('pedido insertar en cliente...', _pedidoInsert);
+            //let _resultInsert = await addDoc(collection(db,'pedidos'),_pedidoInsert);  
+            //Añadimos el pedido directamente al cliente
+            let _clienteSnapshot = await getDocs(query(collection(db, 'clientes'),where('cuenta.email','==',req.body.email)));
+            let _idCliente = _clienteSnapshot.docs[0].id;
+            console.log('idCliente: ', _idCliente);
+            //Añadimos el pedido directamente al cliente
+            let docRef = doc(db, 'clientes', _idCliente);
+            let _resultInsert = await updateDoc(docRef, {
+                pedidosCliente: arrayUnion(_pedidoInsert)
+            });
+            if (_pedidoInsert.datosPago.metodoPago === 'pagopaypal') {
+                let _resp = await servicioPaypal.crearPagoPAYPAL(req.body.email, _pedidoInsert);
+                res.status(200).send(
+                    {
+                        url: JSON.stringify({urlPayPal: _resp})
+                    }
+                );
+            }
         } catch (error) {
             console.log('error al finalizar pedido...', error);
             res.status(403).send(
@@ -95,12 +101,15 @@ module.exports={
         //cancel <--- true o false
         
         console.log('Parametros recibidos...', req.query);
-        let {idcliente,idpedido,cancel}=req.query;
+        let {email,idpedido,cancel}=req.query;
         //necesito obtener el id-pago generado por paypal para el pedido
-        
+        //Actualizamos el pedido que se encuentra en el cliente
+        let _clienteSnapshot = await getDocs(query(collection(db, 'clientes'),where('cuenta.email','==',req.body.email)));
+        let _idCliente = _clienteSnapshot.docs[0].id;
+        console.log('idCliente: ', _idCliente);
         if(! _finPagoOk || cancel==true) throw new Error('Error al finalizar pago con PAYPAL');
         
-        res.status(200).redirect(`http://localhost:4200/Pedido/FinalizarPedidoOk?idcliente=${idcliente}&idpedido=${idpedido}&token=${_jwtSoloUnUso}`);
+        res.status(200).redirect(`http://localhost:4200/Pedido/FinalizarPedidoOk?email=${email}&idpedido=${idpedido}`);
     },
 
     /**
