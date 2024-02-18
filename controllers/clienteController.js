@@ -19,8 +19,14 @@ const {getStorage, ref, uploadString} = require('firebase/storage');
 const storage = getStorage(app); // <--- Servicio de acceso a Firebase Storage
 
 //-----------------CONFIGURACION DE ACCESO: FIRESTORE DATABASE-----------------
-const {getFirestore, getDocs, collection,query, where, addDoc} = require('firebase/firestore');
+const {getFirestore, getDocs, collection,query, where, addDoc, updateDoc, arrayUnion, arrayRemove} = require('firebase/firestore');
 const db = getFirestore(app); // <--- Servicio de acceso a todas las colecciones de la base de datos de Firestore Database
+
+function generaRespuesta(codigo,mensaje,errores,token,datoscliente,otrosdatos,res){
+  //if(req.body.refreshtoken) token=req.body.refreshtoken;
+  res.status(200).send( { codigo,mensaje, errores,token,datoscliente,otrosdatos });
+
+}
 
 module.exports = {
     login:async function(req,res,next){
