@@ -12,4 +12,7 @@ router.post("/Registro", clienteController.registro); //endpoint de la zona clie
 router.post("/Login", clienteController.login); //endpoint de la zona cliente para logarse un cliente
 router.get('/ComprobarEmail', clienteController.comprobarEmail); //endpoint de la zona cliente para recuperar emails de clientes
 router.get('/ActivarCuenta', clienteController.activarCuenta); //endpoint de la zona cliente para activar cuenta de cliente
+router.get('/RecuperarDatosCliente/:email', clienteController.RecuperarDatosCliente); //endpoint de la zona cliente para recuperar datos de cliente
+router.post('/UploadImagen', clienteController.uploadImagen); //endpoint de la zona cliente para subir imagen de perfil de cliente
+router.post('/OperarDireccion', clienteController.operarDireccion); //endpoint de la zona cliente para operar con direcciones de cliente
 module.exports = router; //exporto objeto router con endpoints de la zona cliente y sus funciones middleware

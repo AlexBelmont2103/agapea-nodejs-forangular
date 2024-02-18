@@ -149,15 +149,18 @@ module.exports = {
         }
 
       },
-      recuperarDatosCliente(req,res,next){
-        //Recuperar los datos del cliente a traves de la sesion
+      RecuperarDatosCliente: async function(req,res,next){
         try{
-          let _email = req.query.idcliente;
+          let _email = req.params.email;
+          console.log('Email del cliente a recuperar datos', _email);
+          //Recuperar de la coleccion clientes los datos del cliente asociados al email de la cuenta
+          let _clienteSnapshot = await getDocs(query(collection(db, 'clientes'),where('cuenta.email','==',_email)));
+          let _datoscliente = _clienteSnapshot.docs.shift().data();
           res.status(200).send({
             codigo: 0,
             mensaje: "recuperacion correcta",
-            datoscliente: req.session.user,
-            tokensesion: req.session.jwt,
+            datoscliente: _datoscliente,
+            tokensesion: null,
             otrodatos: null,
           });
         }catch(error){
@@ -193,5 +196,47 @@ module.exports = {
             generaRespuesta(5,'fallo a la hora de subir imagen al storage',error,null,null,null,res);
 
         }
-    } 
+    } ,
+    operarDireccion: async (req,res,next)=>{
+      console.log(req.body); //{ direccion:..., operacion: ..., email: ...}
+      try {
+          //recupero de la coleccion clientes el documento con ese email, lanzo query:
+      let _refcliente=(await getDocs(query(collection(db,'clientes'),where('cuenta.email','==',req.body.email)))).docs[0];
+      console.log('cliente recuperado de firebase-database...', _refcliente.data());
+
+      switch (req.body.operacion) {
+          case 'borrar':
+              //tengo elimiinar del array de direcciones del objeto cliente recuperado la direccion q nos pasan: arrayRemove
+              await updateDoc(_refcliente.ref,{'direcciones': arrayRemove(req.body.direccion)});                
+              break;
+
+          case 'crear':
+              //tengo q añadir al array de direcciones del objeto cliente recuperado la nueva direccion:  arrayUnion
+              await updateDoc(_refcliente.ref,{'direcciones': arrayUnion(req.body.direccion)});
+              break;
+
+          case 'fin-modificacion':
+              //dos posibilidades: accedes a direccion, la recuperas y vas modificandop prop.por prop o eliminas y añades
+              let _direcciones=_refcliente.data().direcciones;
+              let _posmodif=_direcciones.findIndex( direc=>direc.idDireccion==req.body.direccion.idDireccion);
+              _direcciones[_posmodif]=req.body.direccion;
+
+              await updateDoc(_refcliente.ref, {'direcciones': _direcciones });
+              break;
+      }
+
+      //OJO!!! si usas la ref.al documento cliente de arriba, es un snapshot...no esta actualizada!!!! a las nuevas
+      //direcciones, tienes q volver a hacer query...esto no vale:
+      //let _clienteActualizado=(await getDoc(doc(db,'clientes',_refcliente.id))).data();
+      let _clienteActualizado=(await getDocs(query(collection(db,'clientes'),where('cuenta.email','==',req.body.email)))).docs[0].data();
+
+      console.log('cliente actualizado mandado en el restmessage....',_clienteActualizado);
+
+      generaRespuesta(0,`${req.body.operacion} sobre direccion realizada OK!!`,null,'',_clienteActualizado,'',res);
+
+      } catch (error) {
+          console.log('error en operar direcciones...', error);
+          generaRespuesta(6,`fallo a la hora de ${req.body.operacion} sobre direccion ${req.body.direccion.calle} al guardar en bd...`,error,null,null,null,res);
+      }
+    },
     };
