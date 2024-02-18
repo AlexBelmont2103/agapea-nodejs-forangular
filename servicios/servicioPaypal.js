@@ -70,8 +70,8 @@ module.exports = {
                         }
                     ],
                     application_context:{
-                        return_url: `http://localhost:5000/api/Pedido/PayPalCallback?email=${email}&idpedido=${pedido.idPedido}`,
-                        cancel_url: `http://localhost:5000/api/Pedido/PayPalCallback?email=${email}&idpedido=${pedido.idPedido}&Cancel=true`
+                        return_url: `http://localhost:5000/api/Pedido/PayPalCallBack?email=${email}&idpedido=${pedido.idPedido}`,
+                        cancel_url: `http://localhost:5000/api/Pedido/PayPalCallBack?email=${email}&idpedido=${pedido.idPedido}&Cancel=true`
                     }
                 };
                 console.log("Objeto order para crear pago PAYPAL: ", _order);
